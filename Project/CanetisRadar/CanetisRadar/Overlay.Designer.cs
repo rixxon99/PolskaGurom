@@ -1,4 +1,7 @@
-﻿using System.Windows.Forms;
+﻿using IniParser;
+using IniParser.Model;
+using System;
+using System.Windows.Forms;
 
 namespace CanetisRadar
 {
@@ -35,8 +38,11 @@ namespace CanetisRadar
 			this.RadarBox = new global::System.Windows.Forms.PictureBox();
 			((global::System.ComponentModel.ISupportInitialize)this.RadarBox).BeginInit();
 			base.SuspendLayout();
-			int yPosRadar = 50;
-			this.RadarBox.Location = new global::System.Drawing.Point(12, yPosRadar);
+            FileIniDataParser parser = new FileIniDataParser();
+            IniData data = parser.ReadFile(AppDomain.CurrentDomain.BaseDirectory + "settings.ini");
+            int locationY = int.Parse(data["basic"]["locationY"]);
+            int locationX = int.Parse(data["basic"]["locationX"]);
+            this.RadarBox.Location = new global::System.Drawing.Point(locationX, locationY);
 			this.RadarBox.Name = "RadarBox";
 			this.RadarBox.Size = new global::System.Drawing.Size(150, 150);
 			base.AutoScaleDimensions = new global::System.Drawing.SizeF(6f, 13f);
@@ -49,8 +55,8 @@ namespace CanetisRadar
 			base.Name = "Overlay";
 			base.ShowInTaskbar = false;
 			base.StartPosition = global::System.Windows.Forms.FormStartPosition.Manual;
-			base.Location = new global::System.Drawing.Point(150, 150);
-			this.Text = "SoundRadar Overlay";
+            base.Location = new global::System.Drawing.Point(150, 150);
+            this.Text = "SoundRadar Overlay";
 			base.TopMost = true;
 			base.Controls.Add(this.RadarBox);
 			base.Load += new global::System.EventHandler(this.Overlay_Load);
