@@ -1,6 +1,7 @@
 ﻿# Canetis Radar Improved
-## Sectional Highlighting and Configurability
-This fork is for 7.1 Surround with side Speakers (Voicemeeter supported), 
+
+Improved Canetis Radar Version based on: CanetisRadar by SamuelTulach
+
 It adds the following functionality:
 
 * Support for **Side Speakers** in 7.1
@@ -10,6 +11,7 @@ It adds the following functionality:
 * Minimum **Sound Detection Threshold** configurable
 * Slight delay added to visualisation for better usability
 * Fullscreen Compatibility
+* Configurable Radar Position
  
 <p align="center">
     <img src=/Resources/radar.png>
