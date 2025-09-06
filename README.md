@@ -12,6 +12,8 @@ It adds the following functionality:
 * Slight delay added to visualisation for better usability
 * Fullscreen Compatibility
 * Configurable Radar Position
+* Ignore detection of specific sounds by adding their `.wav` files to `Project/CanetisRadar/CanetisRadar/IgnoredSounds`
+* Optional **Spirit mode** for Dead by Daylight with custom highlight color and tuning
  
 <p align="center">
     <img src=/Resources/radar.png>

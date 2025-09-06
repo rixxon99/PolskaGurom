@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Drawing;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
@@ -46,11 +47,44 @@ namespace CanetisRadar
 			this._updateRate = int.Parse(data["basic"]["updateRate"]);
 			this._delay = int.Parse(data["basic"]["delay"]);
 			this._sectionAmount = int.Parse(data["sectionHighlights"]["sectionAmount"]);
-			this._highlightDurationSeconds = int.Parse(data["sectionHighlights"]["highlightDurationSeconds"]);
-			this._highlightSoundThreshold = int.Parse(data["sectionHighlights"]["highlightSoundThreshold"]);
-			Thread t = new Thread(new ThreadStart(this.Loop));
-			t.Start();
-		}
+                        this._highlightDurationSeconds = int.Parse(data["sectionHighlights"]["highlightDurationSeconds"]);
+                        this._highlightSoundThreshold = int.Parse(data["sectionHighlights"]["highlightSoundThreshold"]);
+                        string ignoreFolder = data["ignore"]["soundsFolder"];
+                        if (float.TryParse(data["ignore"]["tolerance"], out float tol))
+                        {
+                                this._ignoreTolerance = tol;
+                        }
+                        string fullIgnorePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ignoreFolder);
+                        this._soundIgnorer = new SoundIgnorer(fullIgnorePath, this._ignoreTolerance);
+
+                        bool spiritEnabled = false;
+                        if (bool.TryParse(data["spirit"]["enabled"], out bool se))
+                        {
+                                spiritEnabled = se;
+                        }
+                        if (spiritEnabled)
+                        {
+                                if (int.TryParse(data["spirit"]["multiplier"], out int sm))
+                                {
+                                        this._multiplier = sm;
+                                }
+                                if (int.TryParse(data["spirit"]["updateRate"], out int sur))
+                                {
+                                        this._updateRate = sur;
+                                }
+                                string colorName = data["spirit"]["highlightColor"];
+                                if (!string.IsNullOrEmpty(colorName))
+                                {
+                                        Color col = Color.FromName(colorName);
+                                        if (col.IsKnownColor)
+                                        {
+                                                this._highlightBrush = new SolidBrush(col);
+                                        }
+                                }
+                        }
+                        Thread t = new Thread(new ThreadStart(this.Loop));
+                        t.Start();
+                }
 
 		// Token: 0x0600000C RID: 12 RVA: 0x0000289C File Offset: 0x00000A9C
 		private void Loop()
@@ -84,14 +118,27 @@ namespace CanetisRadar
 				leftBottom[idx] = this._device.AudioMeterInformation.PeakValues[4];
 				rightBottom[idx] = this._device.AudioMeterInformation.PeakValues[5];
 				left[idx] = this._device.AudioMeterInformation.PeakValues[6];
-				right[idx] = this._device.AudioMeterInformation.PeakValues[7];
-				idx = (idx + 1) % 100;
+                                right[idx] = this._device.AudioMeterInformation.PeakValues[7];
+                                idx = (idx + 1) % 100;
 
+                                float rms = (float)Math.Sqrt((
+                                        leftTop[idx] * leftTop[idx] +
+                                        rightTop[idx] * rightTop[idx] +
+                                        leftBottom[idx] * leftBottom[idx] +
+                                        rightBottom[idx] * rightBottom[idx] +
+                                        left[idx] * left[idx] +
+                                        right[idx] * right[idx]) / 6f);
 
-				float tempOne = leftTop[(idx + (history - this._delay)) % history] * (float)this._multiplier;
-				float tempTwo = rightTop[(idx + (history - this._delay)) % history] * (float)this._multiplier;
-				float tempThree = leftBottom[(idx + (history - this._delay)) % history] * (float)this._multiplier;
-				float tempFour = rightBottom[(idx + (history - this._delay)) % history] * (float)this._multiplier;
+                                if (this._soundIgnorer != null && this._soundIgnorer.ShouldIgnore(rms))
+                                {
+                                        Thread.Sleep(this._updateRate);
+                                        continue;
+                                }
+
+                                float tempOne = leftTop[(idx + (history - this._delay)) % history] * (float)this._multiplier;
+                                float tempTwo = rightTop[(idx + (history - this._delay)) % history] * (float)this._multiplier;
+                                float tempThree = leftBottom[(idx + (history - this._delay)) % history] * (float)this._multiplier;
+                                float tempFour = rightBottom[(idx + (history - this._delay)) % history] * (float)this._multiplier;
 				float tempFive = left[(idx + (history - this._delay)) % history] * (float)this._multiplier;
 				float tempSix = right[(idx + (history - this._delay)) % history] * (float)this._multiplier;
 
@@ -189,7 +236,7 @@ namespace CanetisRadar
 			double magnitude = Math.Sqrt((normalized_x * normalized_x) + (normalized_y * normalized_y));
 			if (section != -1 && magnitude >= this._highlightSoundThreshold)  
 			{
-				grp.FillPolygon(Brushes.Green, triangles[section]); // Fill the highlighted section
+                                grp.FillPolygon(this._highlightBrush, triangles[section]); // Fill the highlighted section
 				lastHighlightedTimestamps[section] = DateTime.Now; // Save time of last highlighting
 
 			}
@@ -255,16 +302,21 @@ namespace CanetisRadar
 		// Highlighting Duration in Seconds
 		private int _highlightDurationSeconds = 3;
 
-		// Highlighting SoundThreshold
-		private int _highlightSoundThreshold = 50;
+                // Highlighting SoundThreshold
+                private int _highlightSoundThreshold = 50;
 
-		//Delay Time for visuals
-		private int _delay = 5;
+                //Delay Time for visuals
+                private int _delay = 5;
 
-		// Token: 0x0400000F RID: 15
-		private readonly Bitmap _radar = new Bitmap(150, 150);
+                // Ignore sounds based on RMS energy
+                private SoundIgnorer _soundIgnorer;
+                private float _ignoreTolerance = 0.05f;
+                private Brush _highlightBrush = Brushes.Green;
 
-		// Token: 0x04000010 RID: 16
-		public IntPtr ParentHandle;
-	}
+                // Token: 0x0400000F RID: 15
+                private readonly Bitmap _radar = new Bitmap(150, 150);
+
+                // Token: 0x04000010 RID: 16
+                public IntPtr ParentHandle;
+        }
 }
